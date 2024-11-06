@@ -128,6 +128,7 @@ public class DB_GUI_Controller implements Initializable {
 
     @FXML
     protected void deleteRecord() {
+
         Person p = tv.getSelectionModel().getSelectedItem();
         int index = data.indexOf(p);
         cnUtil.deleteRecord(p);
@@ -151,6 +152,9 @@ public class DB_GUI_Controller implements Initializable {
     @FXML
     protected void selectedItemTV(MouseEvent mouseEvent) {
         Person p = tv.getSelectionModel().getSelectedItem();
+        if (p == null) {
+            return;
+        }
         first_name.setText(p.getFirstName());
         last_name.setText(p.getLastName());
         department.setText(p.getDepartment());
