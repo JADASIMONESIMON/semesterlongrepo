@@ -1,6 +1,5 @@
 package viewmodel;
 
-import com.azure.storage.blob.BlobClient;
 import dao.DbConnectivityClass;
 import dao.StorageUploader;
 import javafx.animation.PauseTransition;
@@ -10,33 +9,30 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
-import javafx.stage.Window;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import model.Person;
+import service.MyLogger;
 
 import java.io.*;
 import java.net.URL;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.ResourceBundle;
 
 public class DB_GUI_Controller implements Initializable {
 
-    StorageUploader store = new StorageUploader();
+    private final DbConnectivityClass cnUtil = new DbConnectivityClass();
+    private final MyLogger logger = new MyLogger();
 
     @FXML
     private Button addButton, clearButton, deleteButton, editButton;
@@ -45,25 +41,7 @@ public class DB_GUI_Controller implements Initializable {
     private Label statusLabel;
 
     @FXML
-    private MenuItem deleteItem;
-
-    @FXML
-    private VBox progressBarContainer;
-
-    @FXML
-    private ProgressBar progressBar;
-
-    @FXML
-    private TextField first_name, last_name, department, email, imageURL;
-
-    @FXML
-    private ComboBox<String> majorDropdown;
-
-    @FXML
-    private ImageView img_view;
-
-    @FXML
-    private MenuBar menuBar;
+    private MenuItem importCsvItem, exportCsvItem, deleteItem;
 
     @FXML
     private TableView<Person> tv;
@@ -74,36 +52,41 @@ public class DB_GUI_Controller implements Initializable {
     @FXML
     private TableColumn<Person, String> tv_fn, tv_ln, tv_department, tv_major, tv_email;
 
-    private final DbConnectivityClass cnUtil = new DbConnectivityClass();
-    private final ObservableList<Person> data = FXCollections.observableArrayList();
+    @FXML
+    private TextField first_name, last_name, department, email;
 
-
+    @FXML
+    private ComboBox<String> majorDropdown;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         try {
+            if (!cnUtil.testConnection()) {
+                showStatusMessage("Database connection failed!", 5);
+                logger.makeLog("Database connection failed during initialization.");
+                return;
+            }
+
+            // Initialize table columns
             tv_id.setCellValueFactory(new PropertyValueFactory<>("id"));
             tv_fn.setCellValueFactory(new PropertyValueFactory<>("firstName"));
             tv_ln.setCellValueFactory(new PropertyValueFactory<>("lastName"));
             tv_department.setCellValueFactory(new PropertyValueFactory<>("department"));
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
-            tv.setItems(data);
-            data.addAll(cnUtil.getData());
 
-            // Initialize dropdown
-            for (Major major : Major.values()) {
-                majorDropdown.getItems().add(major.getDisplayName());
-            }
+            // Load initial data
+            loadData();
 
-            // Bind disableProperty of buttons to the TableView selection model
+            // Initialize major dropdown with enum values
+            majorDropdown.setItems(FXCollections.observableArrayList("CS", "CPIS", "English"));
+
+            // Bind buttons and menu items to TableView selection
             editButton.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
             deleteButton.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
-
-            // Bind delete menu item
             deleteItem.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
 
-            // Disable add button until all fields are valid
+            // Disable add button until form is valid
             BooleanBinding formValidBinding = createFormValidationBinding(
                     first_name.textProperty(),
                     last_name.textProperty(),
@@ -112,8 +95,40 @@ public class DB_GUI_Controller implements Initializable {
                     email.textProperty()
             );
             addButton.disableProperty().bind(formValidBinding);
-
         } catch (Exception e) {
+            logger.makeLog("Error during initialization: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    @FXML
+    public void showImage() {
+        try {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Select Image");
+            fileChooser.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+            );
+            File selectedFile = fileChooser.showOpenDialog(null);
+
+            if (selectedFile != null) {
+                // Process selected image file
+                System.out.println("Image selected: " + selectedFile.getAbsolutePath());
+            } else {
+                System.out.println("Image selection cancelled.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void loadData() {
+        try {
+            ObservableList<Person> data = cnUtil.getData();
+            tv.setItems(data);
+            logger.makeLog("Data loaded successfully.");
+        } catch (Exception e) {
+            logger.makeLog("Error loading data: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -129,37 +144,121 @@ public class DB_GUI_Controller implements Initializable {
                 () -> firstName.get().trim().isEmpty()
                         || lastName.get().trim().isEmpty()
                         || department.get().trim().isEmpty()
-                        || majorDropdown.getValue() == null
+                        || major.get() == null
                         || email.get().trim().isEmpty()
-                        || !isDepartmentValid(department.get())
                         || !isEmailValid(email.get()),
                 firstName, lastName, department, email
         );
     }
 
-    private boolean isDepartmentValid(String department) {
-        return department != null && department.matches("[a-zA-Z ]+");
-    }
-
     private boolean isEmailValid(String email) {
-        String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
-        return email != null && email.matches(emailRegex);
+        String emailRegex = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,4}$";
+        return email.matches(emailRegex);
     }
 
     @FXML
     protected void addNewRecord() {
-        Person p = new Person(
-                first_name.getText(),
-                last_name.getText(),
-                department.getText(),
-                Major.fromString(majorDropdown.getValue()).name(),
-                email.getText(),
-                imageURL.getText()
-        );
-        cnUtil.insertUser(p);
-        p.setId(cnUtil.retrieveId(p));
-        data.add(p);
-        clearForm();
+        try {
+            Person p = new Person(
+                    first_name.getText(),
+                    last_name.getText(),
+                    department.getText(),
+                    majorDropdown.getValue(),
+                    email.getText(),
+                    null
+            );
+            cnUtil.insertUser(p);
+            tv.getItems().add(p);
+            clearForm();
+            showStatusMessage("Record added successfully!", 5);
+        } catch (Exception e) {
+            showStatusMessage("Failed to add record.", 5);
+            logger.makeLog("Error adding record: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    protected void deleteRecord() {
+        try {
+            Person p = tv.getSelectionModel().getSelectedItem();
+            if (p != null) {
+                cnUtil.deleteUser(p.getId());
+                tv.getItems().remove(p);
+                showStatusMessage("Record deleted successfully!", 5);
+            }
+        } catch (Exception e) {
+            showStatusMessage("Failed to delete record.", 5);
+            logger.makeLog("Error deleting record: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    public void logOut() {
+        try {
+            // Load the login screen
+            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+            Scene scene = new Scene(root, 900, 600);
+            Stage stage = (Stage) tv.getScene().getWindow(); // Get current stage
+            stage.setScene(scene);
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error during logout: " + e.getMessage());
+        }
+    }
+    @FXML
+    public void closeApplication(ActionEvent event) {
+        try {
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    @FXML
+    protected void importCsv() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Import CSV");
+        File file = fileChooser.showOpenDialog(tv.getScene().getWindow());
+        if (file != null) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] fields = line.split(",");
+                    Person p = new Person(fields[1], fields[2], fields[3], fields[4], fields[5], null);
+                    cnUtil.insertUser(p);
+                    tv.getItems().add(p);
+                }
+                showStatusMessage("CSV imported successfully!", 5);
+            } catch (IOException e) {
+                showStatusMessage("Failed to import CSV.", 5);
+                logger.makeLog("Error importing CSV: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    protected void exportCsv() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export CSV");
+        File file = fileChooser.showSaveDialog(tv.getScene().getWindow());
+        if (file != null) {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+                for (Person p : tv.getItems()) {
+                    pw.println(String.format("%d,%s,%s,%s,%s,%s",
+                            p.getId(), p.getFirstName(), p.getLastName(), p.getDepartment(), p.getMajor(), p.getEmail()));
+                }
+                showStatusMessage("CSV exported successfully!", 5);
+            } catch (IOException e) {
+                showStatusMessage("Failed to export CSV.", 5);
+                logger.makeLog("Error exporting CSV: " + e.getMessage());
+            }
+        }
     }
 
     @FXML
@@ -169,212 +268,28 @@ public class DB_GUI_Controller implements Initializable {
         department.clear();
         majorDropdown.setValue(null);
         email.clear();
-        imageURL.clear();
+        showStatusMessage("Form cleared.", 3);
     }
 
-    @FXML
-    protected void deleteRecord() {
-        Person p = tv.getSelectionModel().getSelectedItem();
-        if (p != null) {
-            cnUtil.deleteRecord(p);
-            data.remove(p);
-        }
-    }
-
-    @FXML
-    protected void editRecord() {
-        Person p = tv.getSelectionModel().getSelectedItem();
-        if (p != null) {
-            int index = data.indexOf(p);
-            Person updatedPerson = new Person(
-                    p.getId(),
-                    first_name.getText(),
-                    last_name.getText(),
-                    department.getText(),
-                    Major.fromString(majorDropdown.getValue()).name(),
-                    email.getText(),
-                    imageURL.getText()
-            );
-            cnUtil.editUser(p.getId(), updatedPerson);
-            data.set(index, updatedPerson);
-        }
-    }
-
-    @FXML
-    protected void showImage() {
-        FileChooser fileChooser = new FileChooser();
-        File file = fileChooser.showOpenDialog(img_view.getScene().getWindow());
-        if (file != null) {
-            img_view.setImage(new Image(file.toURI().toString()));
-            uploadFile(file);
-        }
-    }
-
-    private void uploadFile(File file) {
-        Task<Void> uploadTask = createUploadTask(file);
-        progressBar.progressProperty().bind(uploadTask.progressProperty());
-        new Thread(uploadTask).start();
-    }
-
-    private Task<Void> createUploadTask(File file) {
-        return new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                BlobClient blobClient = store.getContainerClient().getBlobClient(file.getName());
-                long fileSize = Files.size(file.toPath());
-                try (FileInputStream fileInputStream = new FileInputStream(file);
-                     OutputStream outputStream = blobClient.getBlockBlobClient().getBlobOutputStream()) {
-
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    long uploadedBytes = 0;
-
-                    while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
-                        uploadedBytes += bytesRead;
-                        updateProgress(uploadedBytes, fileSize);
-                    }
-                }
-                return null;
-            }
-        };
-    }
-
-
-
-    @FXML
-    public void selectedItemTV(MouseEvent mouseEvent) {
-        Person selectedPerson = tv.getSelectionModel().getSelectedItem();
-        if (selectedPerson != null) {
-            first_name.setText(selectedPerson.getFirstName());
-            last_name.setText(selectedPerson.getLastName());
-            department.setText(selectedPerson.getDepartment());
-            majorDropdown.setValue(selectedPerson.getMajor());
-            email.setText(selectedPerson.getEmail());
-            imageURL.setText(selectedPerson.getImageURL());
-        }
-    }
-
-    @FXML
-    protected void displayAbout(ActionEvent event) {
-        Alert aboutAlert = new Alert(Alert.AlertType.INFORMATION);
-        aboutAlert.setTitle("About This Application");
-        aboutAlert.setHeaderText("CSC311 Database Project");
-        aboutAlert.setContentText(
-                "This application was developed as part of the CSC311 course project.\n\n" +
-                        "Features include:\n" +
-                        "- User management\n" +
-                        "- Azure Blob Storage integration\n" +
-                        "- Theme switching\n\n" +
-                        "Developed by: [Your Name]\n" +
-                        "Year: 2024"
-        );
-        aboutAlert.showAndWait();
-    }
-
-    @FXML
-    protected void lightTheme(ActionEvent event) {
-        Scene scene = menuBar.getScene();
-        scene.getStylesheets().clear();
-        scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
-    }
-
-    @FXML
-    protected void darkTheme(ActionEvent event) {
-        Scene scene = menuBar.getScene();
-        scene.getStylesheets().clear();
-        scene.getStylesheets().add(getClass().getResource("/css/darkTheme.css").toExternalForm());
-    }
-
-    public void closeApplication(ActionEvent actionEvent) {
-    }
-
-    public void logOut(ActionEvent actionEvent) {
-
-    }
-    public void showStatusMessage(String message, int duration) {
-        statusLabel.setText(message); // Set the message
-        statusLabel.setVisible(true); // Ensure the label is visible
-
-        // Hide the message after the specified duration
+    private void showStatusMessage(String message, int duration) {
+        statusLabel.setText(message);
         PauseTransition pause = new PauseTransition(Duration.seconds(duration));
-        pause.setOnFinished(event -> statusLabel.setText(""));
+        pause.setOnFinished(e -> statusLabel.setText(""));
         pause.play();
     }
 
-    /**
-     * Example method to demonstrate data addition success.
-     */
-    public void addData() {
-        // Add your data processing logic here
-        boolean success = true; // Example success flag
-
-        if (success) {
-            showStatusMessage("Data successfully added!", 5);
-        } else {
-            showStatusMessage("Failed to add data!", 5);
-        }
-    }
-    public void handleImportCSV() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Import CSV File");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
-
-        Window window = statusLabel.getScene().getWindow(); // Assuming statusLabel is defined
-        File file = fileChooser.showOpenDialog(window);
-
-        if (file != null) {
-            try (BufferedReader reader = Files.newBufferedReader(file.toPath())) {
-                List<String[]> data = new ArrayList<>();
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    data.add(line.split(","));
-                }
-
-                // Process the data as needed
-                showStatusMessage("Data successfully imported!", 5);
-                System.out.println("Imported Data: " + data);
-
-            } catch (IOException e) {
-                showStatusMessage("Failed to import data.", 5);
-                e.printStackTrace();
-            }
-        }
+    public void lightTheme(ActionEvent actionEvent) {
     }
 
-    /**
-     * Handles exporting data to a CSV file.
-     */
-    public void handleExportCSV() throws IOException {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Export CSV File");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+    public void darkTheme(ActionEvent actionEvent) {
+    }
 
-        Window window = statusLabel.getScene().getWindow();
-        File file = fileChooser.showSaveDialog(window);
+    public void displayAbout(ActionEvent actionEvent) {
+    }
 
-        if (file != null) {
-            try (BufferedWriter writer = Files.newBufferedWriter(file.toPath())) {
-                // Sample data to export (replace with actual data)
-                List<String[]> dataToExport = Arrays.asList(
-                        new String[]{"ID", "Name", "Age"},
-                        new String[]{"1", "Alice", "30"},
-                        new String[]{"2", "Bob", "25"}
-                );
+    public void editRecord(ActionEvent actionEvent) {
+    }
 
-                for (String[] row : dataToExport) {
-                    writer.write(String.join(",", row));
-                    writer.newLine();
-                }
-
-                showStatusMessage("Data successfully exported!", 5);
-                System.out.println("Exported Data: " + dataToExport);
-
-            } catch (IOException e) {
-                showStatusMessage("Failed to export data.", 5);
-                e.printStackTrace();
-            }
-        }
+    public void selectedItemTV(MouseEvent mouseEvent) {
     }
 }

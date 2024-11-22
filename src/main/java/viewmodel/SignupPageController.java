@@ -2,13 +2,12 @@ package viewmodel;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import service.UserSession;
 import service.MyLogger;
 
-public class SignUpController {
+public class SignupPageController {
 
     @FXML
     private TextField usernameField;
@@ -16,49 +15,32 @@ public class SignUpController {
     @FXML
     private PasswordField passwordField;
 
-    @FXML
-    private Button newAccountBtn;
-
-    @FXML
-    private Button goBackBtn;
-
     /**
-     * Handles the "Create New Account" button click.
+     * Handles the signup button click event.
      */
     @FXML
-    public void createNewAccount() {
+    public void handleSignup() {
         String username = usernameField.getText();
         String password = passwordField.getText();
 
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+        if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Signup Error", "Username and password cannot be empty.");
             MyLogger.makeLog("Signup failed: Username or password was empty.");
             return;
         }
 
         try {
-            // Create a new user session and save to preferences
+            // Create a new user session
             UserSession session = UserSession.getInstance(username, password);
 
-            // Log the successful creation
+            // Log success and show confirmation
             MyLogger.makeLog("Signup successful for user: " + session.getUserName());
-            showAlert(Alert.AlertType.INFORMATION, "Signup Successful", "Welcome, " + username + "!");
+            showAlert(Alert.AlertType.INFORMATION, "Signup Success", "Welcome, " + username + "!");
         } catch (Exception e) {
-            // Log any errors
+            // Log error and show error message
             MyLogger.makeLog("Signup error: " + e.getMessage());
             showAlert(Alert.AlertType.ERROR, "Signup Error", "An unexpected error occurred: " + e.getMessage());
         }
-    }
-
-    /**
-     * Handles the "Login" button click to go back to the login page.
-     */
-    @FXML
-    public void goBack() {
-        // Navigate back to the login screen
-        showAlert(Alert.AlertType.INFORMATION, "Navigation", "Going back to login page...");
-        MyLogger.makeLog("Navigating back to login page.");
-        // You can implement navigation logic here using a scene loader
     }
 
     /**

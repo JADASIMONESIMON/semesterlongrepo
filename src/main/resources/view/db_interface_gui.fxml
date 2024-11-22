@@ -54,6 +54,8 @@
                         </Menu>
                     </menus>
                 </MenuBar>
+                <Button text="Close" onAction="#closeApplication" />
+
             </top>
             <Label fx:id="statusLabel"
                    layoutX="10.0"
