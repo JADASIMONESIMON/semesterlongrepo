@@ -2,6 +2,7 @@ package viewmodel;
 
 import dao.DbConnectivityClass;
 import javafx.application.Platform;
+import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -31,6 +32,23 @@ public class DB_GUI_Controller implements Initializable {
 
     @FXML
     TextField first_name, last_name, department, major, email, imageURL;
+
+    @FXML
+    private Button editButton;
+
+
+    @FXML
+    private Button addbutton;
+
+    @FXML
+    private Button deleteButton;
+
+    @FXML
+    private MenuItem editItem;
+
+    @FXML
+    private MenuItem deleteItem;
+
     @FXML
     ImageView img_view;
     @FXML
@@ -54,9 +72,27 @@ public class DB_GUI_Controller implements Initializable {
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
             tv.setItems(data);
+
+            BooleanBinding noSelection = tv.getSelectionModel().selectedItemProperty().isNull();
+            editButton.disableProperty().bind(noSelection); // Edit button disabled unless a record is selected
+            deleteButton.disableProperty().bind(noSelection); // Delete button disabled unless a record is selected
+
+            // Bind menu items to selection
+            editItem.disableProperty().bind(noSelection);
+            deleteItem.disableProperty().bind(noSelection);
+
+            // Validate form fields for Add button
+            BooleanBinding formInvalid = first_name.textProperty().isEmpty()
+                    .or(last_name.textProperty().isEmpty())
+                    .or(department.textProperty().isEmpty())
+                    .or(major.textProperty().isEmpty())
+                    .or(email.textProperty().isEmpty().or(email.textProperty().isNotEqualTo("@").not()));
+            addbutton.disableProperty().bind(formInvalid); // Add button enabled only when form is valid
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
     }
 
     @FXML
