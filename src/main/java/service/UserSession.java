@@ -1,7 +1,5 @@
 package service;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.prefs.Preferences;
 
 public class UserSession {
@@ -10,42 +8,40 @@ public class UserSession {
 
     private String userName;
     private String password;
-    private String privileges;
 
     private final Object lock = new Object();
 
-    private UserSession(String userName, String password, String privileges) {
+    private UserSession(String userName, String password) {
         this.userName = userName;
         this.password = password;
-        this.privileges = privileges;
         synchronized (lock) {
             Preferences userPreferences = Preferences.userRoot();
             userPreferences.put("USERNAME", userName);
             userPreferences.put("PASSWORD", password);
-            userPreferences.put("PRIVILEGES", privileges);
         }
-    }
-
-    public static UserSession getInstance(String userName, String password, String privileges) {
-        if (instance == null) {
-            synchronized (UserSession.class) {
-                if (instance == null) {
-                    instance = new UserSession(userName, password, privileges);
-                }
-            }
-        }
-        return instance;
     }
 
     public static UserSession getInstance(String userName, String password) {
         if (instance == null) {
             synchronized (UserSession.class) {
                 if (instance == null) {
-                    instance = new UserSession(userName, password, "NONE");
+                    instance = new UserSession(userName, password);
                 }
             }
         }
         return instance;
+    }
+
+    public static UserSession loadFromPreferences() {
+        synchronized (UserSession.class) {
+            Preferences userPreferences = Preferences.userRoot();
+            String storedUsername = userPreferences.get("USERNAME", "");
+            String storedPassword = userPreferences.get("PASSWORD", "");
+            if (!storedUsername.isEmpty() && !storedPassword.isEmpty()) {
+                return getInstance(storedUsername, storedPassword);
+            }
+            return null;
+        }
     }
 
     public synchronized String getUserName() {
@@ -56,19 +52,13 @@ public class UserSession {
         return this.password;
     }
 
-    public synchronized String getPrivileges() {
-        return this.privileges;
-    }
-
     public synchronized void cleanUserSession() {
         this.userName = "";
         this.password = "";
-        this.privileges = "";
         synchronized (lock) {
             Preferences userPreferences = Preferences.userRoot();
             userPreferences.remove("USERNAME");
             userPreferences.remove("PASSWORD");
-            userPreferences.remove("PRIVILEGES");
         }
     }
 
@@ -76,7 +66,6 @@ public class UserSession {
     public synchronized String toString() {
         return "UserSession{" +
                 "userName='" + userName + '\'' +
-                ", privileges='" + privileges + '\'' +
                 '}';
     }
 }
