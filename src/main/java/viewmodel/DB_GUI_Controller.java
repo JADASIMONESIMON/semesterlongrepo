@@ -1,295 +1,236 @@
 package viewmodel;
 
 import dao.DbConnectivityClass;
-import dao.StorageUploader;
-import javafx.animation.PauseTransition;
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.StringProperty;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 import model.Person;
 import service.MyLogger;
 
-import java.io.*;
+import java.io.File;
 import java.net.URL;
+import java.time.LocalDate;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class DB_GUI_Controller implements Initializable {
 
-    private final DbConnectivityClass cnUtil = new DbConnectivityClass();
-    private final MyLogger logger = new MyLogger();
-
     @FXML
-    private Button addButton, clearButton, deleteButton, editButton;
-
+    TextField first_name, last_name, department, major, email, imageURL;
     @FXML
-    private Label statusLabel;
-
+    ImageView img_view;
     @FXML
-    private MenuItem importCsvItem, exportCsvItem, deleteItem;
-
+    MenuBar menuBar;
     @FXML
     private TableView<Person> tv;
-
     @FXML
     private TableColumn<Person, Integer> tv_id;
-
     @FXML
     private TableColumn<Person, String> tv_fn, tv_ln, tv_department, tv_major, tv_email;
-
-    @FXML
-    private TextField first_name, last_name, department, email;
-
-    @FXML
-    private ComboBox<String> majorDropdown;
+    private final DbConnectivityClass cnUtil = new DbConnectivityClass();
+    private final ObservableList<Person> data = cnUtil.getData();
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         try {
-            if (!cnUtil.testConnection()) {
-                showStatusMessage("Database connection failed!", 5);
-                logger.makeLog("Database connection failed during initialization.");
-                return;
-            }
-
-            // Initialize table columns
             tv_id.setCellValueFactory(new PropertyValueFactory<>("id"));
             tv_fn.setCellValueFactory(new PropertyValueFactory<>("firstName"));
             tv_ln.setCellValueFactory(new PropertyValueFactory<>("lastName"));
             tv_department.setCellValueFactory(new PropertyValueFactory<>("department"));
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
-
-            // Load initial data
-            loadData();
-
-            // Initialize major dropdown with enum values
-            majorDropdown.setItems(FXCollections.observableArrayList("CS", "CPIS", "English"));
-
-            // Bind buttons and menu items to TableView selection
-            editButton.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
-            deleteButton.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
-            deleteItem.disableProperty().bind(tv.getSelectionModel().selectedItemProperty().isNull());
-
-            // Disable add button until form is valid
-            BooleanBinding formValidBinding = createFormValidationBinding(
-                    first_name.textProperty(),
-                    last_name.textProperty(),
-                    department.textProperty(),
-                    majorDropdown.valueProperty(),
-                    email.textProperty()
-            );
-            addButton.disableProperty().bind(formValidBinding);
-        } catch (Exception e) {
-            logger.makeLog("Error during initialization: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    @FXML
-    public void showImage() {
-        try {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Select Image");
-            fileChooser.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
-            );
-            File selectedFile = fileChooser.showOpenDialog(null);
-
-            if (selectedFile != null) {
-                // Process selected image file
-                System.out.println("Image selected: " + selectedFile.getAbsolutePath());
-            } else {
-                System.out.println("Image selection cancelled.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private void loadData() {
-        try {
-            ObservableList<Person> data = cnUtil.getData();
             tv.setItems(data);
-            logger.makeLog("Data loaded successfully.");
         } catch (Exception e) {
-            logger.makeLog("Error loading data: " + e.getMessage());
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-    }
-
-    private BooleanBinding createFormValidationBinding(
-            StringProperty firstName,
-            StringProperty lastName,
-            StringProperty department,
-            ObjectProperty<String> major,
-            StringProperty email
-    ) {
-        return Bindings.createBooleanBinding(
-                () -> firstName.get().trim().isEmpty()
-                        || lastName.get().trim().isEmpty()
-                        || department.get().trim().isEmpty()
-                        || major.get() == null
-                        || email.get().trim().isEmpty()
-                        || !isEmailValid(email.get()),
-                firstName, lastName, department, email
-        );
-    }
-
-    private boolean isEmailValid(String email) {
-        String emailRegex = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,4}$";
-        return email.matches(emailRegex);
     }
 
     @FXML
     protected void addNewRecord() {
-        try {
-            Person p = new Person(
-                    first_name.getText(),
-                    last_name.getText(),
-                    department.getText(),
-                    majorDropdown.getValue(),
-                    email.getText(),
-                    null
-            );
-            cnUtil.insertUser(p);
-            tv.getItems().add(p);
-            clearForm();
-            showStatusMessage("Record added successfully!", 5);
-        } catch (Exception e) {
-            showStatusMessage("Failed to add record.", 5);
-            logger.makeLog("Error adding record: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 
-    @FXML
-    protected void deleteRecord() {
-        try {
-            Person p = tv.getSelectionModel().getSelectedItem();
-            if (p != null) {
-                cnUtil.deleteUser(p.getId());
-                tv.getItems().remove(p);
-                showStatusMessage("Record deleted successfully!", 5);
-            }
-        } catch (Exception e) {
-            showStatusMessage("Failed to delete record.", 5);
-            logger.makeLog("Error deleting record: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+        Person p = new Person(first_name.getText(), last_name.getText(), department.getText(),
+                major.getText(), email.getText(), imageURL.getText());
+        cnUtil.insertUser(p);
+        cnUtil.retrieveId(p);
+        p.setId(cnUtil.retrieveId(p));
+        data.add(p);
+        clearForm();
 
-    @FXML
-    public void logOut() {
-        try {
-            // Load the login screen
-            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-            Scene scene = new Scene(root, 900, 600);
-            Stage stage = (Stage) tv.getScene().getWindow(); // Get current stage
-            stage.setScene(scene);
-            stage.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Error during logout: " + e.getMessage());
-        }
-    }
-    @FXML
-    public void closeApplication(ActionEvent event) {
-        try {
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-
-    @FXML
-    protected void importCsv() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Import CSV");
-        File file = fileChooser.showOpenDialog(tv.getScene().getWindow());
-        if (file != null) {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] fields = line.split(",");
-                    Person p = new Person(fields[1], fields[2], fields[3], fields[4], fields[5], null);
-                    cnUtil.insertUser(p);
-                    tv.getItems().add(p);
-                }
-                showStatusMessage("CSV imported successfully!", 5);
-            } catch (IOException e) {
-                showStatusMessage("Failed to import CSV.", 5);
-                logger.makeLog("Error importing CSV: " + e.getMessage());
-            }
-        }
-    }
-
-    @FXML
-    protected void exportCsv() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Export CSV");
-        File file = fileChooser.showSaveDialog(tv.getScene().getWindow());
-        if (file != null) {
-            try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
-                for (Person p : tv.getItems()) {
-                    pw.println(String.format("%d,%s,%s,%s,%s,%s",
-                            p.getId(), p.getFirstName(), p.getLastName(), p.getDepartment(), p.getMajor(), p.getEmail()));
-                }
-                showStatusMessage("CSV exported successfully!", 5);
-            } catch (IOException e) {
-                showStatusMessage("Failed to export CSV.", 5);
-                logger.makeLog("Error exporting CSV: " + e.getMessage());
-            }
-        }
     }
 
     @FXML
     protected void clearForm() {
-        first_name.clear();
-        last_name.clear();
-        department.clear();
-        majorDropdown.setValue(null);
-        email.clear();
-        showStatusMessage("Form cleared.", 3);
+        first_name.setText("");
+        last_name.setText("");
+        department.setText("");
+        major.setText("");
+        email.setText("");
+        imageURL.setText("");
     }
 
-    private void showStatusMessage(String message, int duration) {
-        statusLabel.setText(message);
-        PauseTransition pause = new PauseTransition(Duration.seconds(duration));
-        pause.setOnFinished(e -> statusLabel.setText(""));
-        pause.play();
+    @FXML
+    protected void logOut(ActionEvent actionEvent) {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+            Scene scene = new Scene(root, 900, 600);
+            scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").getFile());
+            Stage window = (Stage) menuBar.getScene().getWindow();
+            window.setScene(scene);
+            window.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    protected void closeApplication() {
+        System.exit(0);
+    }
+
+    @FXML
+    protected void displayAbout() {
+        try {
+            Parent root = FXMLLoader.load(getClass().getResource("/view/about.fxml"));
+            Stage stage = new Stage();
+            Scene scene = new Scene(root, 600, 500);
+            stage.setScene(scene);
+            stage.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    protected void editRecord() {
+        Person p = tv.getSelectionModel().getSelectedItem();
+        int index = data.indexOf(p);
+        Person p2 = new Person(index + 1, first_name.getText(), last_name.getText(), department.getText(),
+                major.getText(), email.getText(),  imageURL.getText());
+        cnUtil.editUser(p.getId(), p2);
+        data.remove(p);
+        data.add(index, p2);
+        tv.getSelectionModel().select(index);
+    }
+
+    @FXML
+    protected void deleteRecord() {
+
+        Person p = tv.getSelectionModel().getSelectedItem();
+        int index = data.indexOf(p);
+        cnUtil.deleteRecord(p);
+        data.remove(index);
+        tv.getSelectionModel().select(index);
+    }
+
+    @FXML
+    protected void showImage() {
+        File file = (new FileChooser()).showOpenDialog(img_view.getScene().getWindow());
+        if (file != null) {
+            img_view.setImage(new Image(file.toURI().toString()));
+        }
+    }
+
+    @FXML
+    protected void addRecord() {
+        showSomeone();
+    }
+
+    @FXML
+    protected void selectedItemTV(MouseEvent mouseEvent) {
+        Person p = tv.getSelectionModel().getSelectedItem();
+        if (p == null) {
+            return;
+        }
+        first_name.setText(p.getFirstName());
+        last_name.setText(p.getLastName());
+        department.setText(p.getDepartment());
+        major.setText(p.getMajor());
+        email.setText(p.getEmail());
+        imageURL.setText(p.getImageURL());
     }
 
     public void lightTheme(ActionEvent actionEvent) {
+        try {
+            Scene scene = menuBar.getScene();
+            Stage stage = (Stage) scene.getWindow();
+            stage.getScene().getStylesheets().clear();
+            scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
+            stage.setScene(scene);
+            stage.show();
+            System.out.println("light " + scene.getStylesheets());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void darkTheme(ActionEvent actionEvent) {
+        try {
+            Stage stage = (Stage) menuBar.getScene().getWindow();
+            Scene scene = stage.getScene();
+            scene.getStylesheets().clear();
+            scene.getStylesheets().add(getClass().getResource("/css/darkTheme.css").toExternalForm());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    public void displayAbout(ActionEvent actionEvent) {
+    public void showSomeone() {
+        Dialog<Results> dialog = new Dialog<>();
+        dialog.setTitle("New User");
+        dialog.setHeaderText("Please specify…");
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        TextField textField1 = new TextField("Name");
+        TextField textField2 = new TextField("Last Name");
+        TextField textField3 = new TextField("Email ");
+        ObservableList<Major> options =
+                FXCollections.observableArrayList(Major.values());
+        ComboBox<Major> comboBox = new ComboBox<>(options);
+        comboBox.getSelectionModel().selectFirst();
+        dialogPane.setContent(new VBox(8, textField1, textField2,textField3, comboBox));
+        Platform.runLater(textField1::requestFocus);
+        dialog.setResultConverter((ButtonType button) -> {
+            if (button == ButtonType.OK) {
+                return new Results(textField1.getText(),
+                        textField2.getText(), comboBox.getValue());
+            }
+            return null;
+        });
+        Optional<Results> optionalResult = dialog.showAndWait();
+        optionalResult.ifPresent((Results results) -> {
+            MyLogger.makeLog(
+                    results.fname + " " + results.lname + " " + results.major);
+        });
     }
 
-    public void editRecord(ActionEvent actionEvent) {
+    private static enum Major {Business, CSC, CPIS}
+
+    private static class Results {
+
+        String fname;
+        String lname;
+        Major major;
+
+        public Results(String name, String date, Major venue) {
+            this.fname = name;
+            this.lname = date;
+            this.major = venue;
+        }
     }
 
-    public void selectedItemTV(MouseEvent mouseEvent) {
-    }
 }
