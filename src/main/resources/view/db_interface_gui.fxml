@@ -30,6 +30,8 @@
                                 <MenuItem fx:id="ChangePic" mnemonicParsing="false" onAction="#showImage" styleClass="menu_items" text="Change Pic" />
                                 <MenuItem fx:id="logOut" mnemonicParsing="false" onAction="#logOut" styleClass="menu_items" text="Log out" />
                                 <MenuItem mnemonicParsing="false" onAction="#closeApplication" styleClass="menu_items" text="Exit Program" />
+                                <MenuItem fx:id="importCSVMenuItem" text="Import CSV" onAction="#importCSV"/>
+                                <MenuItem fx:id="exportCSVMenuItem" text="Export CSV" onAction="#exportCSV"/>
                             </items>
                         </Menu>
                         <Menu mnemonicParsing="false" styleClass="menu_options" text="Edit">

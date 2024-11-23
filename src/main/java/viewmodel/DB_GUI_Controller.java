@@ -28,8 +28,9 @@ import service.MyLogger;
 import javafx.beans.property.StringProperty;
 import javafx.scene.control.ComboBox;
 
-import java.io.File;
+import java.io.*;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -43,6 +44,13 @@ public class DB_GUI_Controller implements Initializable {
 
     @FXML
     private ComboBox<String> majorDropdown;
+
+    @FXML
+    private MenuItem importCSVMenuItem;
+
+    @FXML
+    private MenuItem exportCSVMenuItem;
+
 
 
 
@@ -254,6 +262,71 @@ public class DB_GUI_Controller implements Initializable {
         } catch (Exception e) {
             updateStatus("Error updating record: " + e.getMessage(), false);
             e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void importCSV(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select CSV File to Import");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        File selectedFile = fileChooser.showOpenDialog(menuBar.getScene().getWindow());
+        if (selectedFile != null) {
+            try (BufferedReader br = new BufferedReader(new FileReader(selectedFile))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String[] values = line.split(","); // Split by comma
+                    if (values.length != 6) continue; // Assuming 6 fields per record
+
+                    // Create and add the Person
+                    Person person = new Person(
+                            values[0],  // First Name
+                            values[1],  // Last Name
+                            values[2],  // Department
+                            Major2.valueOf(values[3].toUpperCase()), // Major
+                            values[4],  // Email
+                            values[5]   // Image URL
+                    );
+                    data.add(person);
+                    cnUtil.insertUser(person); // Save to database
+                }
+                updateStatus("CSV file imported successfully!", true);
+            } catch (Exception e) {
+                updateStatus("Error importing CSV: " + e.getMessage(), false);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Export CSV
+    @FXML
+    private void exportCSV(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save CSV File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        File selectedFile = fileChooser.showSaveDialog(menuBar.getScene().getWindow());
+        if (selectedFile != null) {
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(selectedFile))) {
+                for (Person person : data) {
+                    String record = String.join(",",
+                            Arrays.asList(
+                                    person.getFirstName(),
+                                    person.getLastName(),
+                                    person.getDepartment(),
+                                    person.getMajor().name(),
+                                    person.getEmail(),
+                                    person.getImageURL()
+                            ));
+                    bw.write(record);
+                    bw.newLine();
+                }
+                updateStatus("CSV file exported successfully!", true);
+            } catch (Exception e) {
+                updateStatus("Error exporting CSV: " + e.getMessage(), false);
+                e.printStackTrace();
+            }
         }
     }
 
