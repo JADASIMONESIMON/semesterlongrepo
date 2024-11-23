@@ -71,9 +71,10 @@
                 </VBox>
             </left>
             <bottom>
-                <HBox prefHeight="30.0" prefWidth="892.0" styleClass="admin_section" BorderPane.alignment="CENTER">
+                <HBox prefHeight="30.0" prefWidth="892.0" styleClass="admin_section" spacing="10.0" alignment="CENTER_LEFT" BorderPane.alignment="CENTER">
                     <children>
-                        <ProgressBar fx:id="progressBar" prefHeight="35.0" prefWidth="845.0" progress="0.0" />
+                        <ProgressBar fx:id="progressBar" prefHeight="35.0" prefWidth="600.0" progress="0.0" />
+                        <Label fx:id="statusBar" text="Status: Ready" style="-fx-background-color: lightgray; -fx-padding: 5px; -fx-font-size: 12px;" />
                     </children>
                 </HBox>
             </bottom>

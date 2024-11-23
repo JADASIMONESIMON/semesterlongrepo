@@ -1,6 +1,7 @@
 package viewmodel;
 
 import dao.DbConnectivityClass;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -20,6 +21,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import model.Major2;
 import model.Person;
 import service.MyLogger;
@@ -60,6 +62,9 @@ public class DB_GUI_Controller implements Initializable {
     ImageView img_view;
     @FXML
     MenuBar menuBar;
+    @FXML
+    private Label statusBar;
+
     @FXML
     private TableView<Person> tv;
     @FXML
@@ -135,20 +140,29 @@ public class DB_GUI_Controller implements Initializable {
 
     @FXML
     protected void addNewRecord() {
-        Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase()); // Map to Enum
-        Person p = new Person(
-                first_name.getText(),
-                last_name.getText(),
-                department.getText(),
-                selectedMajor,
-                email.getText(),
-                imageURL.getText()
-        );
-        cnUtil.insertUser(p);
-        p.setId(cnUtil.retrieveId(p));
-        data.add(p);
-        clearForm();
+        try {
+            Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
+            Person p = new Person(
+                    first_name.getText(),
+                    last_name.getText(),
+                    department.getText(),
+                    selectedMajor,
+                    email.getText(),
+                    imageURL.getText()
+            );
+            cnUtil.insertUser(p);
+            p.setId(cnUtil.retrieveId(p));
+            data.add(p);
+            clearForm();
+
+            // Display success message
+            updateStatus("Record added successfully!", true);
+        } catch (Exception e) {
+            updateStatus("Error adding record: " + e.getMessage(), false);
+            e.printStackTrace();
+        }
     }
+
 
     @FXML
     protected void selectedItemTV(MouseEvent mouseEvent) {
@@ -214,33 +228,36 @@ public class DB_GUI_Controller implements Initializable {
 
     @FXML
     protected void editRecord() {
-        // Get the selected person from the TableView
-        Person p = tv.getSelectionModel().getSelectedItem();
-        if (p == null) {
-            return; // No item selected, exit
+        try {
+            Person p = tv.getSelectionModel().getSelectedItem();
+            if (p == null) {
+                updateStatus("No record selected for editing.", false);
+                return;
+            }
+            int index = data.indexOf(p);
+            Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
+            Person updatedPerson = new Person(
+                    p.getId(),
+                    first_name.getText(),
+                    last_name.getText(),
+                    department.getText(),
+                    selectedMajor,
+                    email.getText(),
+                    imageURL.getText()
+            );
+            cnUtil.editUser(p.getId(), updatedPerson);
+            data.set(index, updatedPerson);
+            tv.getSelectionModel().select(index);
+
+            // Display success message
+            updateStatus("Record updated successfully!", true);
+        } catch (Exception e) {
+            updateStatus("Error updating record: " + e.getMessage(), false);
+            e.printStackTrace();
         }
-
-        int index = data.indexOf(p);
-
-        // Get the selected major from the dropdown
-        Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
-
-        // Create a new Person object with updated values
-        Person p2 = new Person(
-                p.getId(), // Keep the original ID
-                first_name.getText(),
-                last_name.getText(),
-                department.getText(),
-                selectedMajor, // Use the selected Major2 value
-                email.getText(),
-                imageURL.getText()
-        );
-
-        // Update the database and refresh the TableView
-        cnUtil.editUser(p.getId(), p2); // Update database record
-        data.set(index, p2); // Update TableView data
-        tv.getSelectionModel().select(index); // Select the updated item in the table
     }
+
+
 
 
     @FXML
@@ -265,6 +282,18 @@ public class DB_GUI_Controller implements Initializable {
     protected void addRecord() {
         showSomeone();
     }
+
+    private void updateStatus(String message, boolean autoClear) {
+        statusBar.setText("Status: " + message);
+
+        // Auto-clear the status after 5 seconds
+        if (autoClear) {
+            PauseTransition pause = new PauseTransition(Duration.seconds(5));
+            pause.setOnFinished(event -> statusBar.setText("Status: Ready"));
+            pause.play();
+        }
+    }
+
 
 
 
