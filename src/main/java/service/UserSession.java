@@ -6,15 +6,15 @@ public class UserSession {
 
     private static volatile UserSession instance;
 
-    private String userName;
-    private String password;
+    private final String userName;
+    private final String password;
 
-    private final Object lock = new Object();
+    private final static Object LOCK = new Object();
 
     private UserSession(String userName, String password) {
         this.userName = userName;
         this.password = password;
-        synchronized (lock) {
+        synchronized (LOCK) {
             Preferences userPreferences = Preferences.userRoot();
             userPreferences.put("USERNAME", userName);
             userPreferences.put("PASSWORD", password);
@@ -33,37 +33,38 @@ public class UserSession {
     }
 
     public static UserSession loadFromPreferences() {
-        synchronized (UserSession.class) {
+        synchronized (LOCK) {
             Preferences userPreferences = Preferences.userRoot();
-            String storedUsername = userPreferences.get("USERNAME", "");
-            String storedPassword = userPreferences.get("PASSWORD", "");
-            if (!storedUsername.isEmpty() && !storedPassword.isEmpty()) {
+            String storedUsername = userPreferences.get("USERNAME", null);
+            String storedPassword = userPreferences.get("PASSWORD", null);
+            if (storedUsername != null && storedPassword != null) {
                 return getInstance(storedUsername, storedPassword);
             }
             return null;
         }
     }
 
-    public synchronized String getUserName() {
-        return this.userName;
+    public String getUserName() {
+        return userName;
     }
 
-    public synchronized String getPassword() {
-        return this.password;
+    public String getPassword() {
+        return password;
     }
 
-    public synchronized void cleanUserSession() {
-        this.userName = "";
-        this.password = "";
-        synchronized (lock) {
+    public void cleanUserSession() {
+        synchronized (LOCK) {
             Preferences userPreferences = Preferences.userRoot();
             userPreferences.remove("USERNAME");
             userPreferences.remove("PASSWORD");
         }
+        synchronized (this) {
+            instance = null; // Clear the singleton instance for fresh initialization
+        }
     }
 
     @Override
-    public synchronized String toString() {
+    public String toString() {
         return "UserSession{" +
                 "userName='" + userName + '\'' +
                 '}';
