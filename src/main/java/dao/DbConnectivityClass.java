@@ -24,32 +24,40 @@ public class DbConnectivityClass {
 
 
     public ObservableList<Person> getData() {
+        data.clear();
         connectToDatabase();
-        try {
-            Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
-            String sql = "SELECT * FROM users ";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-            ResultSet resultSet = preparedStatement.executeQuery();
+        try (Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
+             PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM users");
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+
             if (!resultSet.isBeforeFirst()) {
-                lg.makeLog("No data");
+                lg.makeLog("No data found in the database.");
             }
+
             while (resultSet.next()) {
                 int id = resultSet.getInt("id");
-                String first_name = resultSet.getString("first_name");
-                String last_name = resultSet.getString("last_name");
+                String firstName = resultSet.getString("first_name");
+                String lastName = resultSet.getString("last_name");
                 String department = resultSet.getString("department");
-                Major2 major = Major2.valueOf(resultSet.getString("major").toUpperCase());
+                String majorString = resultSet.getString("major");
+                Major2 major;
+
+                // Safely parse the major, fallback to null if invalid
+                try {
+                    major = Major2.valueOf(majorString.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    lg.makeLog("Invalid major value: " + majorString + ". Setting to null.");
+                    major = null;
+                }
+
                 String email = resultSet.getString("email");
                 String imageURL = resultSet.getString("imageURL");
-                data.add(new Person(id, first_name, last_name, department, major, email, imageURL));
+
+                // Add the Person object to the list
+                data.add(new Person(id, firstName, lastName, department, major, email, imageURL));
             }
-            preparedStatement.close();
-            conn.close();
         } catch (SQLException e) {
             lg.makeLog("Database error: " + e.getMessage());
-            e.printStackTrace();
-        } catch (IllegalArgumentException e) {
-            lg.makeLog("Invalid major value in the database.");
             e.printStackTrace();
         }
         return data;
