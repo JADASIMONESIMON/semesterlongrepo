@@ -5,14 +5,14 @@ public class Person {
     private String firstName;
     private String lastName;
     private String department;
-    private String major;
+    private Major2 major; // Use an enum for major
     private String email;
     private String imageURL;
 
     public Person() {
     }
 
-    public Person(String firstName, String lastName, String department, String major, String email,  String imageURL) {
+    public Person(String firstName, String lastName, String department, Major2 major, String email, String imageURL) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.department = department;
@@ -21,7 +21,7 @@ public class Person {
         this.imageURL = imageURL;
     }
 
-    public Person(Integer id, String firstName, String lastName, String department, String major, String email,  String imageURL) {
+    public Person(Integer id, String firstName, String lastName, String department, Major2 major, String email, String imageURL) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -29,14 +29,6 @@ public class Person {
         this.major = major;
         this.email = email;
         this.imageURL = imageURL;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public Integer getId() {
@@ -47,7 +39,6 @@ public class Person {
         this.id = id;
     }
 
-
     public String getFirstName() {
         return firstName;
     }
@@ -55,7 +46,6 @@ public class Person {
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
-
 
     public String getLastName() {
         return lastName;
@@ -65,15 +55,13 @@ public class Person {
         this.lastName = lastName;
     }
 
-
-    public String getMajor() {
+    public Major2 getMajor() {
         return major;
     }
 
-    public void setMajor(String major) {
+    public void setMajor(Major2 major) {
         this.major = major;
     }
-
 
     public String getDepartment() {
         return department;
@@ -81,6 +69,14 @@ public class Person {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getImageURL() {
@@ -98,9 +94,8 @@ public class Person {
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", department='" + department + '\'' +
-                ", major='" + major + '\'' +
+                ", major=" + major + // Enum toString will be used
                 ", email='" + email + '\'' +
+                ", imageURL='" + imageURL + '\'' +
                 '}';
-    }
-
-}
+    }}

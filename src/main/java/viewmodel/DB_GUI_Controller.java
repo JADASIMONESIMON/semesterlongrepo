@@ -2,6 +2,7 @@ package viewmodel;
 
 import dao.DbConnectivityClass;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,22 +20,28 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import model.Major2;
 import model.Person;
 import service.MyLogger;
+import javafx.beans.property.StringProperty;
+import javafx.scene.control.ComboBox;
 
 import java.io.File;
 import java.net.URL;
-import java.time.LocalDate;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class DB_GUI_Controller implements Initializable {
 
     @FXML
-    TextField first_name, last_name, department, major, email, imageURL;
+    TextField first_name, last_name, department, email, imageURL;
 
     @FXML
     private Button editButton;
+
+    @FXML
+    private ComboBox<String> majorDropdown;
+
 
 
     @FXML
@@ -61,6 +68,8 @@ public class DB_GUI_Controller implements Initializable {
     private TableColumn<Person, String> tv_fn, tv_ln, tv_department, tv_major, tv_email;
     private final DbConnectivityClass cnUtil = new DbConnectivityClass();
     private final ObservableList<Person> data = cnUtil.getData();
+    private ObservableList<String> majorOptions;
+    private MouseEvent mouseEvent;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -73,19 +82,28 @@ public class DB_GUI_Controller implements Initializable {
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
             tv.setItems(data);
 
+
+            // Populate the dropdown
+            majorDropdown.setItems(FXCollections.observableArrayList(
+                    Major2.CS.name(),
+                    Major2.CPIS.name(),
+                    Major2.ENGLISH.name()
+            ));
+
+
             BooleanBinding noSelection = tv.getSelectionModel().selectedItemProperty().isNull();
             editButton.disableProperty().bind(noSelection); // Edit button disabled unless a record is selected
             deleteButton.disableProperty().bind(noSelection); // Delete button disabled unless a record is selected
 
             // Bind menu items to selection
-            editItem.disableProperty().bind(noSelection);
-            deleteItem.disableProperty().bind(noSelection);
+            //editItem.disableProperty().bind(noSelection);
+            //deleteItem.disableProperty().bind(noSelection);
 
             // Validate form fields for Add button
             BooleanBinding formInvalid = first_name.textProperty().isEmpty()
                     .or(last_name.textProperty().isEmpty())
                     .or(department.textProperty().isEmpty())
-                    .or(major.textProperty().isEmpty())
+                    .or(majorDropdown.valueProperty().isNull())
                     .or(email.textProperty().isEmpty().or(email.textProperty().isNotEqualTo("@").not()));
             addbutton.disableProperty().bind(formInvalid); // Add button enabled only when form is valid
 
@@ -94,29 +112,72 @@ public class DB_GUI_Controller implements Initializable {
         }
 
     }
+    /**
+     * Validates email format using regex.
+     */
+    private BooleanBinding emailValid(StringProperty emailProperty) {
+        String emailRegex = "^[\\w._%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$";
+        return Bindings.createBooleanBinding(() -> emailProperty.get().matches(emailRegex), emailProperty);
+    }
+
+    /**
+     * Validates text fields for names and departments using regex.
+     * - No special characters except spaces.
+     * - Must start with a letter.
+     */
+    private BooleanBinding textFieldValid(StringProperty textProperty) {
+        String textRegex = "^[a-zA-Z][a-zA-Z\\s]*$";
+        return Bindings.createBooleanBinding(() -> textProperty.get().matches(textRegex), textProperty);
+    }
+
+
+
 
     @FXML
     protected void addNewRecord() {
-
-        Person p = new Person(first_name.getText(), last_name.getText(), department.getText(),
-                major.getText(), email.getText(), imageURL.getText());
+        Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase()); // Map to Enum
+        Person p = new Person(
+                first_name.getText(),
+                last_name.getText(),
+                department.getText(),
+                selectedMajor,
+                email.getText(),
+                imageURL.getText()
+        );
         cnUtil.insertUser(p);
-        cnUtil.retrieveId(p);
         p.setId(cnUtil.retrieveId(p));
         data.add(p);
         clearForm();
-
     }
+
+    @FXML
+    protected void selectedItemTV(MouseEvent mouseEvent) {
+        this.mouseEvent = mouseEvent;
+        Person p = tv.getSelectionModel().getSelectedItem();
+        if (p != null) {
+            return;
+        }
+        first_name.setText(p.getFirstName());
+        last_name.setText(p.getLastName());
+        department.setText(p.getDepartment());
+        majorDropdown.setValue(p.getMajor().getDisplayName()); // Use Display Name
+        email.setText(p.getEmail());
+        imageURL.setText(p.getImageURL());
+    }
+
+
+
 
     @FXML
     protected void clearForm() {
         first_name.setText("");
         last_name.setText("");
         department.setText("");
-        major.setText("");
+        majorDropdown.getSelectionModel().clearSelection(); // Clear dropdown
         email.setText("");
         imageURL.setText("");
     }
+
 
     @FXML
     protected void logOut(ActionEvent actionEvent) {
@@ -150,17 +211,37 @@ public class DB_GUI_Controller implements Initializable {
         }
     }
 
+
     @FXML
     protected void editRecord() {
+        // Get the selected person from the TableView
         Person p = tv.getSelectionModel().getSelectedItem();
+        if (p == null) {
+            return; // No item selected, exit
+        }
+
         int index = data.indexOf(p);
-        Person p2 = new Person(index + 1, first_name.getText(), last_name.getText(), department.getText(),
-                major.getText(), email.getText(),  imageURL.getText());
-        cnUtil.editUser(p.getId(), p2);
-        data.remove(p);
-        data.add(index, p2);
-        tv.getSelectionModel().select(index);
+
+        // Get the selected major from the dropdown
+        Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
+
+        // Create a new Person object with updated values
+        Person p2 = new Person(
+                p.getId(), // Keep the original ID
+                first_name.getText(),
+                last_name.getText(),
+                department.getText(),
+                selectedMajor, // Use the selected Major2 value
+                email.getText(),
+                imageURL.getText()
+        );
+
+        // Update the database and refresh the TableView
+        cnUtil.editUser(p.getId(), p2); // Update database record
+        data.set(index, p2); // Update TableView data
+        tv.getSelectionModel().select(index); // Select the updated item in the table
     }
+
 
     @FXML
     protected void deleteRecord() {
@@ -185,19 +266,8 @@ public class DB_GUI_Controller implements Initializable {
         showSomeone();
     }
 
-    @FXML
-    protected void selectedItemTV(MouseEvent mouseEvent) {
-        Person p = tv.getSelectionModel().getSelectedItem();
-        if (p == null) {
-            return;
-        }
-        first_name.setText(p.getFirstName());
-        last_name.setText(p.getLastName());
-        department.setText(p.getDepartment());
-        major.setText(p.getMajor());
-        email.setText(p.getEmail());
-        imageURL.setText(p.getImageURL());
-    }
+
+
 
     public void lightTheme(ActionEvent actionEvent) {
         try {
