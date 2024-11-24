@@ -5,6 +5,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+import javafx.scene.Scene;
+import javafx.scene.Parent;
+import javafx.fxml.FXMLLoader;
 import service.UserSession;
 import service.MyLogger;
 
@@ -27,10 +31,10 @@ public class SignUpController {
      */
     @FXML
     public void createNewAccount() {
-        String username = usernameField.getText();
-        String password = passwordField.getText();
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText().trim();
 
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+        if (username.isEmpty() || password.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Signup Error", "Username and password cannot be empty.");
             MyLogger.makeLog("Signup failed: Username or password was empty.");
             return;
@@ -43,6 +47,10 @@ public class SignUpController {
             // Log the successful creation
             MyLogger.makeLog("Signup successful for user: " + session.getUserName());
             showAlert(Alert.AlertType.INFORMATION, "Signup Successful", "Welcome, " + username + "!");
+
+            // Navigate to the login page after successful signup
+            navigateToLogin();
+
         } catch (Exception e) {
             // Log any errors
             MyLogger.makeLog("Signup error: " + e.getMessage());
@@ -51,14 +59,11 @@ public class SignUpController {
     }
 
     /**
-     * Handles the "Login" button click to go back to the login page.
+     * Handles the "Back to Login" button click.
      */
     @FXML
     public void goBack() {
-        // Navigate back to the login screen
-        showAlert(Alert.AlertType.INFORMATION, "Navigation", "Going back to login page...");
-        MyLogger.makeLog("Navigating back to login page.");
-        // You can implement navigation logic here using a scene loader
+        navigateToLogin();
     }
 
     /**
@@ -71,4 +76,33 @@ public class SignUpController {
         alert.setContentText(message);
         alert.showAndWait();
     }
+
+    /**
+     * Navigates back to the login page.
+     */
+    private void navigateToLogin() {
+        try {
+            // Load the login page FXML file
+            Parent loginRoot = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
+            Scene loginScene = new Scene(loginRoot);
+
+            // Get the current stage
+            Stage currentStage = (Stage) usernameField.getScene().getWindow();
+
+            // Set the login scene and show it
+            currentStage.setScene(loginScene);
+            currentStage.show();
+
+            MyLogger.makeLog("Successfully navigated to the login page.");
+        } catch (NullPointerException e) {
+            MyLogger.makeLog("Navigation error: FXML element (usernameField) is null. Check fx:id mapping.");
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Navigation Error", "UI element is not properly mapped.");
+        } catch (Exception e) {
+            MyLogger.makeLog("Navigation error: " + e.getMessage());
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Navigation Error", "An unexpected error occurred while navigating to the login page.");
+        }
+    }
+
 }
