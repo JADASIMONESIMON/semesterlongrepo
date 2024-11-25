@@ -51,6 +51,9 @@ public class DB_GUI_Controller implements Initializable {
     @FXML
     private MenuItem exportCSVMenuItem;
 
+    @FXML
+    private ImageView simonLogo;
+
 
 
 
@@ -87,6 +90,7 @@ public class DB_GUI_Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         try {
+            simonLogo.setImage(new Image(getClass().getResourceAsStream("/images/simon.png")));
             tv_id.setCellValueFactory(new PropertyValueFactory<>("id"));
             tv_fn.setCellValueFactory(new PropertyValueFactory<>("firstName"));
             tv_ln.setCellValueFactory(new PropertyValueFactory<>("lastName"));
@@ -123,6 +127,8 @@ public class DB_GUI_Controller implements Initializable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+
 
     }
     /**

@@ -1,111 +1,120 @@
+/* Button Styles */
 .db_btn {
-    -fx-background-color: #a73;
+    -fx-background-color: #1e90ff; /* Dodger blue background */
     -fx-cursor: hand;
     -fx-font-family: "Arial";
     -fx-font-size: 15px;
     -fx-text-alignment: center;
-    -fx-text-fill: #000000;
+    -fx-text-fill: #ffffff; /* White text */
     -fx-alignment: CENTER;
-    -fx-background-radius: 10;
-    -fx-pref-width:200px;
-    -fx-pref-height: 50px;
+    -fx-background-radius: 10; /* Rounded corners */
+    -fx-pref-width: 200px; /* Default width */
+    -fx-pref-height: 50px; /* Default height */
 }
 
+/* Left Pane Styles */
 .left_pane {
-    -fx-background-color: #a73;
+    -fx-background-color: #2b2b2b; /* Dark gray for sidebar */
     -fx-pref-width: 130px;
-    -fx-pref-height: 600px;
+    -fx-pref-height: 600px; /* Full height */
 }
 
+/* Admin Section Background */
 .admin_section {
-    -fx-background-color: #999;
+    -fx-background-color: #1e1e1e; /* Black for admin sections */
 }
 
+/* Table Columns */
 .table_columns {
-    -fx-background-color: white;
-    -fx-text-fill: black;
+    -fx-background-color: #ffffff; /* White background */
+    -fx-text-fill: #000000; /* Black text */
 }
 
-
+/* Menu Bar */
 .menu_bar {
-    -fx-background-color: #841;
+    -fx-background-color: #ffffff; /* Black for menu bar */
+    -fx-text-fill: #ffffff; /* White text */
 }
 
+/* Anchor Pane */
 .anchor_pane {
-    -fx-background-color: #a73;
+    -fx-background-color: #1e1e1e; /* Black for main background */
 }
 
+/* Text Field Background Pane */
 .text_field_pane {
-    -fx-background-color: #79dc05;
-
+    -fx-background-color: #ffffff; /* White for input fields */
+    -fx-border-color: #1e90ff; /* Blue border */
+    -fx-border-width: 2px;
 }
 
-.image_view{
-    -fx-background-color: yellow;
-    -fx-border-color: black;
-    -fx-border-width: 2;
+/* Image View Styles */
+.image_view {
+    -fx-background-color: #1e90ff; /* Dodger blue for images */
+    -fx-border-color: #000000; /* Black border */
+    -fx-border-width: 2; /* Thick border for emphasis */
 }
 
-
-
-
+/* TableView Column Header */
 .table-view .column-header,
 .table-view .column-header-background .filler {
-    -fx-background-color:  #999999;
-     -fx-text-fill: black;
+    -fx-background-color: #1e90ff; /* Blue for headers */
+    -fx-text-fill: #ffffff; /* White text */
 }
-.table-view .column-header .label{
-   -fx-text-fill: white;
-   -fx-font-weight: bold;
-   -fx-alignment: CENTER_LEFT;
-}
-.table-view .cell{
-   -fx-cell-size: 35;
-  -fx-alignment: center-left;
-  -fx-background-color: #FFFFFF;
-  -fx-border-color: #29292D;
-  -fx-text-fill: black;
-  -fx-alignment: CENTER_LEFT;
-    -fx-border-width:0.0;
 
+.table-view .column-header .label {
+    -fx-text-fill: #ffffff; /* White text for column labels */
+    -fx-font-weight: bold; /* Bold text for emphasis */
+    -fx-alignment: CENTER_LEFT; /* Align text to the left */
 }
+
+/* Table Cell Styles */
+.table-view .cell {
+    -fx-cell-size: 35; /* Larger cell size for better readability */
+    -fx-alignment: center-left;
+    -fx-background-color: #f5f5f5; /* Light gray background for cells */
+    -fx-border-color: #29292d; /* Dark gray border */
+    -fx-text-fill: #000000; /* Black text */
+    -fx-border-width: 0.0; /* Thin border */
+}
+
+/* Selected Row Styles */
 .table-row-cell:selected {
-   -fx-background-color: whitesmoke;
-   -fx-text-background-color:  #33FF55;
-
-
+    -fx-background-color: #1e90ff; /* Blue background for selection */
+    -fx-text-background-color: #ffffff; /* White text for contrast */
 }
-.table-row-cell .cell{
-    -fx-border-width: 0.3;
+
+.table-row-cell .cell {
+    -fx-border-width: 0.3; /* Slightly thicker borders for rows */
 }
+
 .table-view:focused .table-row-cell:selected .table-cell {
-    -fx-background-color: lightBlue;
-    -fx-text-fill: grey;
-}
-/* scroll bar starts here */
-
-/* The increment and decrement button CSS class of scrollbar */
-.table-view .increment-button ,.table-view .decrement-button {
-    -fx-background-color:transparent;
-	-fx-background-radius: 2em;
-
+    -fx-background-color: #87ceeb; /* Light sky blue for focused rows */
+    -fx-text-fill: #000000; /* Black text */
 }
 
-/* The main scrollbar **track** CSS class  */
+/* Scrollbar Styling */
+
+/* Scrollbar Increment/Decrement Button */
+.table-view .increment-button,
+.table-view .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 2em; /* Rounded buttons */
+}
+
+/* Scrollbar Track */
 .table-view .scroll-bar:horizontal .track,
-.table-view .scroll-bar:vertical .track{
-	-fx-background-color: transparent;
-	-fx-border-color:derive( #FFFFFF,80%);
-
-	-fx-background-radius: 2em;
-	-fx-border-radius:2em;
+.table-view .scroll-bar:vertical .track {
+    -fx-background-color: #000000; /* Black track */
+    -fx-border-color: #1e90ff; /* Blue border */
+    -fx-background-radius: 2em; /* Rounded track */
+    -fx-border-radius: 2em; /* Rounded border */
 }
 
-/* The main scrollbar **thumb** CSS class which we drag every time (movable) */
+/* Scrollbar Thumb (Movable Part) */
 .table-view .scroll-bar:horizontal .thumb,
 .table-view .scroll-bar:vertical .thumb {
-    -fx-background-color:derive( #FFFFFF,90%);
-	-fx-background-insets: 1, 0, 0;
-	-fx-background-radius: 2em;
-
+    -fx-background-color: #1e90ff; /* Blue for the scrollbar thumb */
+    -fx-background-insets: 1, 0, 0;
+    -fx-background-radius: 2em; /* Rounded thumb */
 }
