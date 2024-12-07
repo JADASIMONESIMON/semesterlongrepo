@@ -27,7 +27,7 @@ public class MainApplication extends Application {
         this.primaryStage = primaryStage;
         this.primaryStage.setResizable(false);
         primaryStage.getIcons().add(icon);
-        primaryStage.setTitle("Simon's Students Registration Application ");
+        primaryStage.setTitle("EduEnroll Application");
         showScene1();
     }
 

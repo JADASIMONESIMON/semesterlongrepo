@@ -1,12 +1,14 @@
 package viewmodel;
 
 import dao.DbConnectivityClass;
+import dao.StorageUploader;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,6 +19,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -90,7 +93,7 @@ public class DB_GUI_Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         try {
-            simonLogo.setImage(new Image(getClass().getResourceAsStream("/images/simon.png")));
+            simonLogo.setImage(new Image(getClass().getResourceAsStream("/images/eduenrolllogo.jpg")));
             tv_id.setCellValueFactory(new PropertyValueFactory<>("id"));
             tv_fn.setCellValueFactory(new PropertyValueFactory<>("firstName"));
             tv_ln.setCellValueFactory(new PropertyValueFactory<>("lastName"));
@@ -98,6 +101,25 @@ public class DB_GUI_Controller implements Initializable {
             tv_major.setCellValueFactory(new PropertyValueFactory<>("major"));
             tv_email.setCellValueFactory(new PropertyValueFactory<>("email"));
             tv.setItems(data);
+
+
+            importCSVMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+I"));
+            exportCSVMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+E"));
+            editItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+E"));
+            deleteItem.setAccelerator(KeyCombination.keyCombination("Ctrl+D"));
+
+            // Add event handlers if necessary
+            importCSVMenuItem.setOnAction(event -> importCSV(event));
+            exportCSVMenuItem.setOnAction(event -> exportCSV(event));
+            editItem.setOnAction(event -> editRecord());
+            deleteItem.setOnAction(event -> deleteRecord());
+
+            MyLogger.makeLog("Menu shortcuts initialized.");
+
+
+
+            // Initial check to apply correct style
+            updateTableViewStyle(tv);
 
 
             // Populate the dropdown
@@ -152,24 +174,26 @@ public class DB_GUI_Controller implements Initializable {
 
 
 
+
     @FXML
     protected void addNewRecord() {
         try {
             Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
+            String uploadedImageURL = imageURL.getText(); // Use the uploaded URL
+
             Person p = new Person(
                     first_name.getText(),
                     last_name.getText(),
                     department.getText(),
                     selectedMajor,
                     email.getText(),
-                    imageURL.getText()
+                    uploadedImageURL // Link the uploaded image URL
             );
-            cnUtil.insertUser(p);
-            p.setId(cnUtil.retrieveId(p));
+            cnUtil.insertUser(p); // Save to the database
+            p.setId(cnUtil.retrieveId(p)); // Retrieve the generated ID
             data.add(p);
             clearForm();
 
-            // Display success message
             updateStatus("Record added successfully!", true);
         } catch (Exception e) {
             updateStatus("Error adding record: " + e.getMessage(), false);
@@ -178,20 +202,39 @@ public class DB_GUI_Controller implements Initializable {
     }
 
 
+
+
+
     @FXML
     protected void selectedItemTV(MouseEvent mouseEvent) {
-        this.mouseEvent = mouseEvent;
         Person p = tv.getSelectionModel().getSelectedItem();
         if (p != null) {
-            return;
+            // Update form fields
+            first_name.setText(p.getFirstName());
+            last_name.setText(p.getLastName());
+            department.setText(p.getDepartment());
+            majorDropdown.setValue(p.getMajor() != null ? p.getMajor().name() : null);
+            email.setText(p.getEmail());
+
+            // Validate and update ImageView
+            String imageUrl = p.getImageURL();
+            if (imageUrl != null && !imageUrl.isBlank()) {
+                try {
+                    img_view.setImage(new Image(imageUrl, true)); // Load asynchronously
+                    updateStatus("Image updated for selected record.", true);
+                } catch (IllegalArgumentException e) {
+                    img_view.setImage(null); // Clear the image view if the URL is invalid
+                    updateStatus("Invalid image URL for selected record.", false);
+                }
+            } else {
+                img_view.setImage(null); // Clear the image view if no URL is set
+                updateStatus("No image available for selected record.", true);
+            }
         }
-        first_name.setText(p.getFirstName());
-        last_name.setText(p.getLastName());
-        department.setText(p.getDepartment());
-        majorDropdown.setValue(p.getMajor().getDisplayName()); // Use Display Name
-        email.setText(p.getEmail());
-        imageURL.setText(p.getImageURL());
     }
+
+
+
 
 
 
@@ -239,7 +282,6 @@ public class DB_GUI_Controller implements Initializable {
         }
     }
 
-
     @FXML
     protected void editRecord() {
         try {
@@ -250,6 +292,8 @@ public class DB_GUI_Controller implements Initializable {
             }
             int index = data.indexOf(p);
             Major2 selectedMajor = Major2.valueOf(majorDropdown.getValue().toUpperCase());
+            String uploadedImageURL = imageURL.getText(); // Use the uploaded URL
+
             Person updatedPerson = new Person(
                     p.getId(),
                     first_name.getText(),
@@ -257,19 +301,24 @@ public class DB_GUI_Controller implements Initializable {
                     department.getText(),
                     selectedMajor,
                     email.getText(),
-                    imageURL.getText()
+                    uploadedImageURL // Link the updated image URL
             );
-            cnUtil.editUser(p.getId(), updatedPerson);
+            cnUtil.editUser(p.getId(), updatedPerson); // Update the database record
             data.set(index, updatedPerson);
-            tv.getSelectionModel().select(index);
 
-            // Display success message
             updateStatus("Record updated successfully!", true);
         } catch (Exception e) {
             updateStatus("Error updating record: " + e.getMessage(), false);
             e.printStackTrace();
         }
     }
+
+
+
+
+
+
+
 
     @FXML
     private void importCSV(ActionEvent event) {
@@ -349,13 +398,56 @@ public class DB_GUI_Controller implements Initializable {
         tv.getSelectionModel().select(index);
     }
 
+
     @FXML
     protected void showImage() {
-        File file = (new FileChooser()).showOpenDialog(img_view.getScene().getWindow());
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Profile Image");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+        );
+
+        File file = fileChooser.showOpenDialog(img_view.getScene().getWindow());
         if (file != null) {
-            img_view.setImage(new Image(file.toURI().toString()));
+            try {
+                StorageUploader uploader = new StorageUploader();
+                String blobName = "profiles/" + file.getName();
+                uploader.uploadFile(file.getAbsolutePath(), blobName);
+
+                String blobUrl = uploader.getContainerClient().getBlobClient(blobName).getBlobUrl();
+                if (!blobUrl.isBlank()) {
+                    img_view.setImage(new Image(blobUrl, true)); // Load asynchronously
+                    imageURL.setText(blobUrl);
+                    updateStatus("Image uploaded successfully!", true);
+                } else {
+                    updateStatus("Failed to retrieve Blob URL after upload.", false);
+                }
+            } catch (Exception e) {
+                updateStatus("Error uploading image: " + e.getMessage(), false);
+                e.printStackTrace();
+            }
+        } else {
+            updateStatus("No file selected.", false);
         }
     }
+
+
+    /**
+     * Updates the TableView's style class based on whether it is empty.
+     */
+    private void updateTableViewStyle(TableView<Person> tv) {
+        if (data.isEmpty()) {
+            this.tv.getStyleClass().add("empty");
+        } else {
+            this.tv.getStyleClass().remove("empty");
+        }
+    }
+
+
+
+
+
+
 
     @FXML
     protected void addRecord() {
@@ -398,6 +490,7 @@ public class DB_GUI_Controller implements Initializable {
             Scene scene = stage.getScene();
             scene.getStylesheets().clear();
             scene.getStylesheets().add(getClass().getResource("/css/darkTheme.css").toExternalForm());
+            updateTableViewStyle(tv);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -446,5 +539,74 @@ public class DB_GUI_Controller implements Initializable {
             this.major = venue;
         }
     }
+    @FXML
+    private VBox progressBarContainer;
+
+    /**
+     * Uploads an image and measures the time it takes, updating a progress bar in real-time.
+     */
+    @FXML
+    protected void uploadImageWithProgress() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Profile Image");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+        );
+
+        File file = fileChooser.showOpenDialog(img_view.getScene().getWindow());
+        if (file != null) {
+            ProgressBar progressBar = new ProgressBar(0);
+            Label progressLabel = new Label("Uploading...");
+            progressBarContainer.getChildren().addAll(progressLabel, progressBar);
+
+            Task<Void> uploadTask = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    long startTime = System.currentTimeMillis();
+
+                    // Simulate uploading and update progress
+                    StorageUploader uploader = new StorageUploader();
+                    String blobName = "profiles/" + file.getName();
+                    uploader.uploadFile(file.getAbsolutePath(), blobName);
+
+                    String blobUrl = uploader.getContainerClient().getBlobClient(blobName).getBlobUrl();
+                    if (!blobUrl.isBlank()) {
+                        Platform.runLater(() -> {
+                            img_view.setImage(new Image(blobUrl, true));
+                            imageURL.setText(blobUrl);
+                        });
+                    }
+
+                    long endTime = System.currentTimeMillis();
+                    long uploadDuration = endTime - startTime;
+
+                    Platform.runLater(() -> {
+                        progressLabel.setText("Upload completed in " + uploadDuration + " ms");
+                        progressBar.setProgress(1.0); // Complete progress
+                    });
+
+                    return null;
+                }
+
+                @Override
+                protected void failed() {
+                    Platform.runLater(() -> {
+                        progressLabel.setText("Upload failed: " + getException().getMessage());
+                    });
+                }
+            };
+
+            // Bind progress bar to the task progress
+            progressBar.progressProperty().bind(uploadTask.progressProperty());
+
+            // Run the task in a background thread
+            Thread uploadThread = new Thread(uploadTask);
+            uploadThread.setDaemon(true);
+            uploadThread.start();
+        } else {
+            updateStatus("No file selected.", false);
+        }
+    }
+
 
 }

@@ -28,9 +28,10 @@
                                 <MenuItem fx:id="newItem" mnemonicParsing="false" onAction="#addNewRecord" styleClass="menu_items" text="New" />
                                 <MenuItem fx:id="ChangePic" mnemonicParsing="false" onAction="#showImage" styleClass="menu_items" text="Change Pic" />
                                 <MenuItem fx:id="logOut" mnemonicParsing="false" onAction="#logOut" styleClass="menu_items" text="Log out" />
-                                <MenuItem mnemonicParsing="false" onAction="#closeApplication" styleClass="menu_items" text="Exit Program" />
+
                                 <MenuItem fx:id="importCSVMenuItem" onAction="#importCSV" text="Import CSV" />
                                 <MenuItem fx:id="exportCSVMenuItem" onAction="#exportCSV" text="Export CSV" />
+                                <MenuItem mnemonicParsing="false" onAction="#closeApplication" styleClass="menu_items" text="Exit Program" />
                             </items>
                         </Menu>
                         <Menu mnemonicParsing="false" styleClass="menu_options" text="Edit">
@@ -75,6 +76,8 @@
                 <HBox alignment="CENTER_LEFT" prefHeight="30.0" prefWidth="892.0" spacing="10.0" styleClass="admin_section" BorderPane.alignment="CENTER">
                     <children>
                         <ProgressBar fx:id="progressBar" prefHeight="35.0" prefWidth="600.0" progress="0.0" />
+                        <Button text="Upload with Progress" onAction="#uploadImageWithProgress"/>
+
                         <Label fx:id="statusBar" style="-fx-background-color: lightgray; -fx-padding: 5px; -fx-font-size: 12px;" text="Status: Ready" />
                     </children>
                 </HBox>
@@ -92,9 +95,9 @@
                         <Button fx:id="addbutton" mnemonicParsing="false" onAction="#addNewRecord" styleClass="db_btn" text="Add" />
                         <Button fx:id="deleteButton" mnemonicParsing="false" onAction="#deleteRecord" styleClass="db_btn" text="Delete" />
                         <Button fx:id="editButton" mnemonicParsing="false" onAction="#editRecord" styleClass="db_btn" text="Edit" />
-                  <ImageView fx:id="simonLogo" fitHeight="96.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
+                  <ImageView fx:id="simonLogo" fitHeight="150.0" fitWidth="200.0" pickOnBounds="true" preserveRatio="true">
                      <image>
-                        <Image url="@../images/simon.png" />
+                        <Image url="@../images/eduenrolllogo.jpg" />
                      </image>
                   </ImageView>
                     </children>

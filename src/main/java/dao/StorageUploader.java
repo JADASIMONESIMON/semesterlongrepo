@@ -5,6 +5,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.models.BlobStorageException;
 
 public class StorageUploader {
 
@@ -18,9 +19,25 @@ public class StorageUploader {
     }
 
     public void uploadFile(String filePath, String blobName) {
-        BlobClient blobClient = containerClient.getBlobClient(blobName);
-        blobClient.uploadFromFile(filePath);
+        try {
+            BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+            // Check if blob already exists
+            if (blobClient.exists()) {
+                // Generate a unique name if the blob exists
+                String uniqueBlobName = "profiles/" + System.currentTimeMillis() + "_" + blobName;
+                blobClient = containerClient.getBlobClient(uniqueBlobName);
+            }
+
+            // Upload the file
+            blobClient.uploadFromFile(filePath);
+            System.out.println("File uploaded to: " + blobClient.getBlobUrl());
+        } catch (BlobStorageException e) {
+            System.err.println("Error uploading file: " + e.getMessage());
+            throw e;
+        }
     }
+
     public BlobContainerClient getContainerClient(){
         return containerClient;
     }

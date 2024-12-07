@@ -95,6 +95,22 @@
    -fx-background-color: whitesmoke;
    -fx-text-background-color:  #aa22CC;
 }
+/* Fully transparent borders and background for empty TableView */
+.table-view:empty {
+    -fx-background-color:#1c1c1c ; /* Transparent background */
+    -fx-border-color: #1c1c1c ; /* Transparent border */
+    -fx-border-width: 0; /* No visible borders */
+}
+
+.table-view:empty .table-row-cell {
+    -fx-background-color: #1c1c1c ; /* Transparent rows */
+    -fx-border-width: 0; /* No row borders */
+    -fx-border-color: #1c1c1c ; /* Ensure row borders are hidden */
+}
+
+
+
+
 
 /* scroll bar starts here */
 

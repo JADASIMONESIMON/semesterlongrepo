@@ -40,18 +40,25 @@ public class DbConnectivityClass {
                 String lastName = resultSet.getString("last_name");
                 String department = resultSet.getString("department");
                 String majorString = resultSet.getString("major");
-                Major2 major;
+                Major2 major = null;
 
-                // Safely parse the major, fallback to null if invalid
-                try {
-                    major = Major2.valueOf(majorString.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    lg.makeLog("Invalid major value: " + majorString + ". Setting to null.");
-                    major = null;
+                // Safely parse the major
+                if (majorString != null) {
+                    try {
+                        major = Major2.valueOf(majorString.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        lg.makeLog("Invalid major value: " + majorString + ". Setting to null.");
+                    }
+                } else {
+                    lg.makeLog("Major value is null. Setting to null.");
                 }
 
                 String email = resultSet.getString("email");
                 String imageURL = resultSet.getString("imageURL");
+                if (imageURL == null || imageURL.isBlank()) {
+                    // Set default placeholder image URL
+                    imageURL = "https://yourstorageaccount.blob.core.windows.net/media-files/default-profile.jpg";
+                }
 
                 // Add the Person object to the list
                 data.add(new Person(id, firstName, lastName, department, major, email, imageURL));
@@ -62,6 +69,8 @@ public class DbConnectivityClass {
         }
         return data;
     }
+
+
 
 
     public boolean connectToDatabase() {
@@ -165,27 +174,29 @@ public class DbConnectivityClass {
     }
 
     public void insertUser(Person person) {
-        connectToDatabase();
-        try {
-            Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
-            String sql = "INSERT INTO users (first_name, last_name, department, major, email, imageURL) VALUES (?, ?, ?, ?, ?, ?)";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
+        String query = "INSERT INTO users (first_name, last_name, department, major, email, imageURL) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DriverManager.getConnection(DB_URL, USERNAME, PASSWORD);
+             PreparedStatement preparedStatement = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+
             preparedStatement.setString(1, person.getFirstName());
             preparedStatement.setString(2, person.getLastName());
             preparedStatement.setString(3, person.getDepartment());
-            preparedStatement.setString(4, person.getMajor().getDisplayName());
+            preparedStatement.setString(4, person.getMajor() != null ? person.getMajor().name() : null);
             preparedStatement.setString(5, person.getEmail());
             preparedStatement.setString(6, person.getImageURL());
-            int row = preparedStatement.executeUpdate();
-            if (row > 0) {
-                lg.makeLog("A new user was inserted successfully.");
+
+            preparedStatement.executeUpdate();
+            try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    person.setId(generatedKeys.getInt(1));
+                }
             }
-            preparedStatement.close();
-            conn.close();
         } catch (SQLException e) {
+            lg.makeLog("Database insert error for user " + person.getFirstName() + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
+
 
     public void editUser(int id, Person p) {
         connectToDatabase();

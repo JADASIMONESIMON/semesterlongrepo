@@ -1,108 +1,145 @@
 package viewmodel;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.stage.Stage;
-import javafx.scene.Scene;
-import javafx.scene.Parent;
 import javafx.fxml.FXMLLoader;
-import service.UserSession;
-import service.MyLogger;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 
 public class SignUpController {
 
     @FXML
-    private TextField usernameField;
+    private TextField emailfield;
+
 
     @FXML
-    private PasswordField passwordField;
+    private TextField usernamefield;
 
     @FXML
-    private Button newAccountBtn;
+    private Label errormessagelabel;
 
     @FXML
-    private Button goBackBtn;
+    private TextField fnameField;
+
+    @FXML
+    private TextField lnamefield;
+
+    @FXML
+    private Button loginbtn;
+
+    @FXML
+    private PasswordField passwordfield;
+
+    @FXML
+    private Button submitbtn;
+
+    private static String savedUsername;
+    private static String savedPassword;
 
     /**
-     * Handles the "Create New Account" button click.
+     * Validates all fields and saves the username and password if valid.
      */
     @FXML
-    public void createNewAccount() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText().trim();
+    void handleSubmit(ActionEvent event) {
+        boolean isValid = true;
+        errormessagelabel.setText("");
 
-        if (username.isEmpty() || password.isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "Signup Error", "Username and password cannot be empty.");
-            MyLogger.makeLog("Signup failed: Username or password was empty.");
-            return;
+        if (!usernamefield.getText().matches("^[a-z]+$")) { // Only lowercase letters
+            highlightField(usernamefield, true);
+            errormessagelabel.setText("Username must contain only lowercase letters.");
+            isValid = false;
+        } else {
+            highlightField(usernamefield, false);
         }
 
+        // Validate first name
+        if (!fnameField.getText().matches("^[A-Z][a-z]*$")) {
+            highlightField(fnameField, true);
+            errormessagelabel.setText("First name must start with a capital letter followed by lowercase letters.");
+            isValid = false;
+        } else {
+            highlightField(fnameField, false);
+        }
+
+        // Validate last name
+        if (!lnamefield.getText().matches("^[A-Z][a-z]*$")) {
+            highlightField(lnamefield, true);
+            errormessagelabel.setText("Last name must start with a capital letter followed by lowercase letters.");
+            isValid = false;
+        } else {
+            highlightField(lnamefield, false);
+        }
+
+        // Validate email
+        if (!emailfield.getText().matches("^[\\w._%+-]+@farmingdale\\.edu$")) {
+            highlightField(emailfield, true);
+            errormessagelabel.setText("Email must end with '@farmingdale.edu'.");
+            isValid = false;
+        } else {
+            highlightField(emailfield, false);
+        }
+
+        // Validate password
+        if (!passwordfield.getText().matches("^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).+$")) {
+            highlightField(passwordfield, true);
+            errormessagelabel.setText("Password must contain at least one uppercase letter, one lowercase letter, and one digit.");
+            isValid = false;
+        } else {
+            highlightField(passwordfield, false);
+        }
+
+        if (isValid) {
+            savedUsername = usernamefield.getText();
+            savedPassword = passwordfield.getText();
+            errormessagelabel.setTextFill(Color.GREEN);
+            errormessagelabel.setText("Signup successful. Redirecting to login...");
+            redirectToLogin();
+        }
+    }
+
+    /**
+     * Navigates back to the login page regardless of field values.
+     */
+    @FXML
+    void handleBackToLogin(ActionEvent event) {
+        redirectToLogin();
+    }
+
+    /**
+     * Highlights a text field in red if invalid.
+     */
+    private void highlightField(TextField field, boolean isInvalid) {
+        if (isInvalid) {
+            field.setStyle("-fx-border-color: red;");
+        } else {
+            field.setStyle("-fx-border-color: transparent;");
+        }
+    }
+
+    /**
+     * Redirects the user to the login page.
+     */
+    private void redirectToLogin() {
         try {
-            // Create a new user session and save to preferences
-            UserSession session = UserSession.getInstance(username, password);
-
-            // Log the successful creation
-            MyLogger.makeLog("Signup successful for user: " + session.getUserName());
-            showAlert(Alert.AlertType.INFORMATION, "Signup Successful", "Welcome, " + username + "!");
-
-            // Navigate to the login page after successful signup
-            navigateToLogin();
-
+            Stage stage = (Stage) loginbtn.getScene().getWindow();
+            Scene loginScene = new Scene(
+                    FXMLLoader.load(getClass().getResource("/view/login.fxml"))
+            );
+            stage.setScene(loginScene);
         } catch (Exception e) {
-            // Log any errors
-            MyLogger.makeLog("Signup error: " + e.getMessage());
-            showAlert(Alert.AlertType.ERROR, "Signup Error", "An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    /**
-     * Handles the "Back to Login" button click.
-     */
-    @FXML
-    public void goBack() {
-        navigateToLogin();
+    // Static getters to retrieve saved credentials
+    public static String getSavedUsername() {
+        return savedUsername;
     }
 
-    /**
-     * Utility method to show alerts.
-     */
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
+    public static String getSavedPassword() {
+        return savedPassword;
     }
-
-    /**
-     * Navigates back to the login page.
-     */
-    private void navigateToLogin() {
-        try {
-            // Load the login page FXML file
-            Parent loginRoot = FXMLLoader.load(getClass().getResource("/view/login.fxml"));
-            Scene loginScene = new Scene(loginRoot);
-
-            // Get the current stage
-            Stage currentStage = (Stage) usernameField.getScene().getWindow();
-
-            // Set the login scene and show it
-            currentStage.setScene(loginScene);
-            currentStage.show();
-
-            MyLogger.makeLog("Successfully navigated to the login page.");
-        } catch (NullPointerException e) {
-            MyLogger.makeLog("Navigation error: FXML element (usernameField) is null. Check fx:id mapping.");
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Navigation Error", "UI element is not properly mapped.");
-        } catch (Exception e) {
-            MyLogger.makeLog("Navigation error: " + e.getMessage());
-            e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Navigation Error", "An unexpected error occurred while navigating to the login page.");
-        }
-    }
-
 }

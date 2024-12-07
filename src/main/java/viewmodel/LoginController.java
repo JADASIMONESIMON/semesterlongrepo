@@ -1,76 +1,95 @@
 package viewmodel;
 
-import javafx.animation.FadeTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.geometry.Side;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.image.Image;
-import javafx.scene.layout.*;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
-import javafx.util.Duration;
-
-
 
 public class LoginController {
 
+    @FXML
+    private Button loginBtn;
 
     @FXML
-    private GridPane rootpane;
-    public void initialize() {
-        rootpane.setBackground(new Background(
-                        createImage("https://edencoding.com/wp-content/uploads/2021/03/layer_06_1920x1080.png"),
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                )
-        );
+    private PasswordField passwordField;
 
-
-        rootpane.setOpacity(0);
-        FadeTransition fadeOut2 = new FadeTransition(Duration.seconds(10), rootpane);
-        fadeOut2.setFromValue(0);
-        fadeOut2.setToValue(1);
-        fadeOut2.play();
-    }
-    private static BackgroundImage createImage(String url) {
-        return new BackgroundImage(
-                new Image(url),
-                BackgroundRepeat.REPEAT, BackgroundRepeat.NO_REPEAT,
-                new BackgroundPosition(Side.LEFT, 0, true, Side.BOTTOM, 0, true),
-                new BackgroundSize(BackgroundSize.AUTO, BackgroundSize.AUTO, true, true, false, true));
-    }
     @FXML
-    public void login(ActionEvent actionEvent) {
+    private TextField usernameTextField;
+
+    @FXML
+    private Button signUpButton;
+
+    /**
+     * Handles the login button action.
+     */
+    @FXML
+    void handleLogin(ActionEvent event) {
+        String enteredUsername = usernameTextField.getText();
+        String enteredPassword = passwordField.getText();
+
+        if (authenticate(enteredUsername, enteredPassword)) {
+            redirectToGUI();
+        } else {
+            showAlert("Invalid Login", "Username or password is incorrect. Please try again.");
+        }
+    }
+
+    /**
+     * Handles the sign-up button action.
+     */
+    @FXML
+    void handleSignUp(ActionEvent event) {
+        redirectToSignUp();
+    }
+
+    /**
+     * Authenticates the entered username and password against saved credentials.
+     */
+    private boolean authenticate(String username, String password) {
+        return username.equals(SignUpController.getSavedUsername()) &&
+                password.equals(SignUpController.getSavedPassword());
+    }
+
+    /**
+     * Redirects to the main GUI.
+     */
+    private void redirectToGUI() {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/db_interface_gui.fxml"));
-            Scene scene = new Scene(root, 900, 600);
-            scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
-            Stage window = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-            window.setScene(scene);
-            window.show();
+            Stage stage = (Stage) loginBtn.getScene().getWindow();
+            Scene guiScene = new Scene(
+                    FXMLLoader.load(getClass().getResource("/view/db_interface_gui.fxml"))
+            );
+            stage.setScene(guiScene);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void signUp(ActionEvent actionEvent) {
+    /**
+     * Redirects to the signup page.
+     */
+    private void redirectToSignUp() {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("/view/signUp.fxml"));
-            Scene scene = new Scene(root, 900, 600);
-            scene.getStylesheets().add(getClass().getResource("/css/lightTheme.css").toExternalForm());
-            Stage window = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-            window.setScene(scene);
-            window.show();
+            Stage stage = (Stage) signUpButton.getScene().getWindow();
+            Scene signUpScene = new Scene(
+                    FXMLLoader.load(getClass().getResource("/view/signup.fxml"))
+            );
+            stage.setScene(signUpScene);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-
+    /**
+     * Displays an alert with the given title and message.
+     */
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 }
